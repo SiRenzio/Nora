@@ -1,13 +1,13 @@
-import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
-import PasswordInput from '@/components/password-input';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import { login } from '@/routes';
-import { store } from '@/routes/register';
+import { Form, Head } from "@inertiajs/react";
+import InputError from "@/components/input-error";
+import PasswordInput from "@/components/password-input";
+import TextLink from "@/components/text-link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { login } from "@/routes";
+import { store } from "@/routes/register";
 
 type Props = {
     passwordRules: string;
@@ -16,10 +16,10 @@ type Props = {
 export default function Register({ passwordRules }: Props) {
     return (
         <>
-            <Head title="Register" />
+            <Head title="Create your Nora account" />
             <Form
                 {...store.form()}
-                resetOnSuccess={['password', 'password_confirmation']}
+                resetOnSuccess={["password", "password_confirmation"]}
                 disableWhileProcessing
                 className="flex flex-col gap-6"
             >
@@ -27,19 +27,19 @@ export default function Register({ passwordRules }: Props) {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="username">Username</Label>
                                 <Input
-                                    id="name"
+                                    id="username"
                                     type="text"
                                     required
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="name"
-                                    name="name"
-                                    placeholder="Full name"
+                                    autoComplete="username"
+                                    name="username"
+                                    placeholder="reader_name"
                                 />
                                 <InputError
-                                    message={errors.name}
+                                    message={errors.username}
                                     className="mt-2"
                                 />
                             </div>
@@ -102,7 +102,7 @@ export default function Register({ passwordRules }: Props) {
                         </div>
 
                         <div className="text-muted-foreground text-center text-sm">
-                            Already have an account?{' '}
+                            Already have an account?{" "}
                             <TextLink href={login()} tabIndex={6}>
                                 Log in
                             </TextLink>
@@ -115,6 +115,7 @@ export default function Register({ passwordRules }: Props) {
 }
 
 Register.layout = {
-    title: 'Create an account',
-    description: 'Enter your details below to create your account',
+    title: "Start your library",
+    description:
+        "Create an account to keep every story and chapter in one place.",
 };

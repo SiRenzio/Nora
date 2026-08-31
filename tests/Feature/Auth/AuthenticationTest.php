@@ -12,6 +12,13 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_home_page_redirects_guests_to_login()
+    {
+        $response = $this->get(route('home'));
+
+        $response->assertRedirect(route('login', absolute: false));
+    }
+
     public function test_login_screen_can_be_rendered()
     {
         $response = $this->get(route('login'));
@@ -24,12 +31,25 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->post(route('login.store'), [
-            'email' => $user->email,
+            'login' => $user->email,
             'password' => 'password',
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('library.index', absolute: false));
+    }
+
+    public function test_users_can_authenticate_using_their_username()
+    {
+        $user = User::factory()->create(['username' => 'nora_reader']);
+
+        $response = $this->post(route('login.store'), [
+            'login' => 'nora_reader',
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('library.index', absolute: false));
     }
 
     public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()
@@ -44,7 +64,7 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->withTwoFactor()->create();
 
         $response = $this->post(route('login'), [
-            'email' => $user->email,
+            'login' => $user->email,
             'password' => 'password',
         ]);
 
@@ -58,7 +78,7 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $this->post(route('login.store'), [
-            'email' => $user->email,
+            'login' => $user->email,
             'password' => 'wrong-password',
         ]);
 
@@ -83,7 +103,7 @@ class AuthenticationTest extends TestCase
         RateLimiter::increment(md5('login'.implode('|', [$user->email, '127.0.0.1'])), amount: 5);
 
         $response = $this->post(route('login.store'), [
-            'email' => $user->email,
+            'login' => $user->email,
             'password' => 'wrong-password',
         ]);
 

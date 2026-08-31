@@ -7,8 +7,10 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 /* @end-chisel-registration */
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -46,6 +48,15 @@ class FortifyServiceProvider extends ServiceProvider
         /* @chisel-registration */
         Fortify::createUsersUsing(CreateNewUser::class);
         /* @end-chisel-registration */
+        Fortify::authenticateUsing(function (Request $request) {
+            $login = Str::lower((string) $request->input('login'));
+            $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+            $user = User::where($field, $login)->first();
+
+            return $user && Hash::check((string) $request->input('password'), $user->password)
+                ? $user
+                : null;
+        });
     }
 
     /**

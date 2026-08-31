@@ -1,19 +1,19 @@
-import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
-import PasswordInput from '@/components/password-input';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+import { Form, Head } from "@inertiajs/react";
+import InputError from "@/components/input-error";
+import PasswordInput from "@/components/password-input";
+import TextLink from "@/components/text-link";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 /* @chisel-registration */
-import { register } from '@/routes';
+import { register } from "@/routes";
 /* @end-chisel-registration */
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
+import { store } from "@/routes/login";
+import { request } from "@/routes/password";
 /* @chisel-passkeys */
-import PasskeyVerify from '@/components/passkey-verify';
+import PasskeyVerify from "@/components/passkey-verify";
 /* @end-chisel-passkeys */
 
 type Props = {
@@ -24,7 +24,7 @@ type Props = {
 export default function Login({ status, canResetPassword }: Props) {
     return (
         <>
-            <Head title="Log in" />
+            <Head title="Log in to Nora" />
 
             {/* @chisel-passkeys */}
             <PasskeyVerify />
@@ -32,25 +32,27 @@ export default function Login({ status, canResetPassword }: Props) {
 
             <Form
                 {...store.form()}
-                resetOnSuccess={['password']}
+                resetOnSuccess={["password"]}
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="login">
+                                    Username or email address
+                                </Label>
                                 <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
+                                    id="login"
+                                    type="text"
+                                    name="login"
                                     required
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
+                                    autoComplete="username"
+                                    placeholder="reader_name or email@example.com"
                                 />
-                                <InputError message={errors.email} />
+                                <InputError message={errors.login} />
                             </div>
 
                             <div className="grid gap-2">
@@ -100,7 +102,7 @@ export default function Login({ status, canResetPassword }: Props) {
 
                         {/* @chisel-registration */}
                         <div className="text-muted-foreground text-center text-sm">
-                            Don't have an account?{' '}
+                            Don't have an account?{" "}
                             <TextLink href={register()} tabIndex={5}>
                                 Sign up
                             </TextLink>
@@ -120,6 +122,6 @@ export default function Login({ status, canResetPassword }: Props) {
 }
 
 Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
+    title: "Welcome back",
+    description: "Log in to continue tracking your stories and new chapters.",
 };

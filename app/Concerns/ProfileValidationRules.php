@@ -16,7 +16,7 @@ trait ProfileValidationRules
     protected function profileRules(?int $userId = null): array
     {
         return [
-            'name' => $this->nameRules(),
+            'username' => $this->usernameRules($userId),
             'email' => $this->emailRules($userId),
         ];
     }
@@ -26,9 +26,18 @@ trait ProfileValidationRules
      *
      * @return array<int, ValidationRule|array<mixed>|string>
      */
-    protected function nameRules(): array
+    protected function usernameRules(?int $userId = null): array
     {
-        return ['required', 'string', 'max:255'];
+        return [
+            'required',
+            'string',
+            'min:3',
+            'max:30',
+            'regex:/^[A-Za-z0-9_]+$/',
+            $userId === null
+                ? Rule::unique(User::class)
+                : Rule::unique(User::class)->ignore($userId),
+        ];
     }
 
     /**
