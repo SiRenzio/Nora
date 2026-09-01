@@ -19,6 +19,7 @@ class LibraryEntry extends Model
         'source_website',
         'status',
         'latest_chapter',
+        'chapter_urls',
         'last_completed_chapter',
         'last_read_at',
         'last_checked_at',
@@ -28,7 +29,7 @@ class LibraryEntry extends Model
         'archived_at',
     ];
 
-    protected $appends = ['unread_count', 'next_chapter'];
+    protected $appends = ['unread_count', 'next_chapter', 'next_chapter_url'];
 
     protected function casts(): array
     {
@@ -36,6 +37,7 @@ class LibraryEntry extends Model
             'last_read_at' => 'datetime',
             'last_checked_at' => 'datetime',
             'monitoring_enabled' => 'boolean',
+            'chapter_urls' => 'array',
             'archived_at' => 'datetime',
         ];
     }
@@ -69,6 +71,14 @@ class LibraryEntry extends Model
         }
 
         return $matches[1].((int) $matches[2] + 1);
+    }
+
+    public function getNextChapterUrlAttribute(): ?string
+    {
+        $nextChapter = $this->next_chapter;
+        $chapterUrls = $this->chapter_urls ?? [];
+
+        return $nextChapter === null ? null : ($chapterUrls[$nextChapter] ?? null);
     }
 
     private function chapterNumber(?string $chapter): ?float

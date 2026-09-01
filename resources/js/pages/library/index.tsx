@@ -13,7 +13,7 @@ import InputError from "@/components/input-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { destroy, index, store, update } from "@/routes/library";
+import { destroy, importMethod, index, store, update } from "@/routes/library";
 import { update as updateProgress } from "@/routes/library/progress";
 
 type Entry = {
@@ -29,6 +29,7 @@ type Entry = {
     rating: number | null;
     unread_count: number | null;
     next_chapter: string | null;
+    next_chapter_url: string | null;
     title: {
         title: string;
         alternative_title: string | null;
@@ -61,6 +62,35 @@ const contentTypes = [
     ["comic", "Comic"],
     ["novel", "Novel"],
 ] as const;
+
+function chapterOptions(entry: Entry): string[] {
+    const latestMatch = entry.latest_chapter?.match(/(\d+(?:\.\d+)?)\s*$/);
+    const latest = latestMatch ? Number(latestMatch[1]) : 0;
+
+    if (!Number.isFinite(latest) || latest <= 0) {
+        return entry.last_completed_chapter
+            ? [entry.last_completed_chapter]
+            : [];
+    }
+
+    const options = Array.from(
+        { length: Math.floor(latest) },
+        (_, index) => `Chapter ${index + 1}`,
+    );
+
+    if (!Number.isInteger(latest)) {
+        options.push(`Chapter ${latest}`);
+    }
+
+    if (
+        entry.last_completed_chapter &&
+        !options.includes(entry.last_completed_chapter)
+    ) {
+        options.push(entry.last_completed_chapter);
+    }
+
+    return options;
+}
 
 function EntryFields({ entry }: { entry?: Entry }) {
     return (
@@ -257,6 +287,101 @@ export default function LibraryIndex({ entries, filters }: Props) {
                             }`}
                         >
                             <Form
+                                {...importMethod.form()}
+                                onSuccess={() => setShowAddForm(false)}
+                                className="mb-6 space-y-4 border-b pb-6"
+                            >
+                                {({ processing, errors }) => (
+                                    <>
+                                        <div>
+                                            <h2 className="text-xl font-semibold">
+                                                Import from a website
+                                            </h2>
+                                            <p className="text-muted-foreground text-sm">
+                                                Automatic import supports Asura
+                                                Scans and Genz Toons. Comix URLs
+                                                can be saved with the manual
+                                                form below for now.
+                                            </p>
+                                        </div>
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <div className="grid gap-2 md:col-span-2">
+                                                <Label htmlFor="import-source-url">
+                                                    Series page URL
+                                                </Label>
+                                                <Input
+                                                    id="import-source-url"
+                                                    name="source_url"
+                                                    type="url"
+                                                    required
+                                                    placeholder="https://asurascans.com/comics/..."
+                                                />
+                                                {errors.source_url && (
+                                                    <InputError
+                                                        message={
+                                                            errors.source_url
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label>Reading status</Label>
+                                                <select
+                                                    name="status"
+                                                    defaultValue="plan_to_read"
+                                                    className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                                >
+                                                    {statuses.map(
+                                                        ([value, label]) => (
+                                                            <option
+                                                                key={value}
+                                                                value={value}
+                                                            >
+                                                                {label}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label>
+                                                    Last completed chapter
+                                                </Label>
+                                                <Input
+                                                    name="last_completed_chapter"
+                                                    maxLength={100}
+                                                    placeholder="e.g. Chapter 12"
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-3 md:col-span-2">
+                                                <input
+                                                    type="hidden"
+                                                    name="monitoring_enabled"
+                                                    value="0"
+                                                />
+                                                <input
+                                                    id="import-monitoring"
+                                                    type="checkbox"
+                                                    name="monitoring_enabled"
+                                                    value="1"
+                                                    defaultChecked
+                                                    className="size-4"
+                                                />
+                                                <Label htmlFor="import-monitoring">
+                                                    Monitor this title for new
+                                                    chapters
+                                                </Label>
+                                            </div>
+                                        </div>
+                                        <Button disabled={processing}>
+                                            {processing
+                                                ? "Importing..."
+                                                : "Import title"}
+                                        </Button>
+                                    </>
+                                )}
+                            </Form>
+                            <Form
                                 {...store.form()}
                                 onSuccess={() => setShowAddForm(false)}
                                 className="space-y-5"
@@ -448,40 +573,76 @@ export default function LibraryIndex({ entries, filters }: Props) {
                                         {({ processing, errors }) => (
                                             <>
                                                 <div className="flex gap-2">
-                                                    <Input
+                                                    <select
                                                         name="chapter"
                                                         aria-label="Completed chapter"
-                                                        placeholder="Chapter label"
-                                                        className="h-8 min-w-0 text-xs"
-                                                    />
+                                                        defaultValue=""
+                                                        className="border-input bg-background h-8 min-w-0 flex-1 rounded-md border px-3 text-xs"
+                                                        required
+                                                    >
+                                                        <option
+                                                            value=""
+                                                            disabled
+                                                        >
+                                                            Select chapter
+                                                        </option>
+                                                        {chapterOptions(
+                                                            entry,
+                                                        ).map((chapter) => (
+                                                            <option
+                                                                key={chapter}
+                                                                value={chapter}
+                                                            >
+                                                                {chapter}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                     <Button
                                                         name="progress_action"
                                                         value="manual"
                                                         variant="secondary"
                                                         size="sm"
-                                                        disabled={processing}
+                                                        disabled={
+                                                            processing ||
+                                                            chapterOptions(
+                                                                entry,
+                                                            ).length === 0
+                                                        }
                                                     >
                                                         <Check className="size-3.5" />
                                                         Mark read
                                                     </Button>
                                                 </div>
                                                 <div className="flex flex-wrap gap-2">
-                                                    <Button
-                                                        name="progress_action"
-                                                        value="next"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled={
-                                                            processing ||
-                                                            !entry.next_chapter ||
-                                                            entry.unread_count ===
-                                                                0
-                                                        }
-                                                    >
-                                                        Read next
-                                                        {entry.next_chapter &&
-                                                            ` (${entry.next_chapter})`}
-                                                    </Button>
+                                                    {entry.next_chapter_url ? (
+                                                        <Button
+                                                            asChild
+                                                            variant="outline"
+                                                            size="sm"
+                                                        >
+                                                            <a
+                                                                href={
+                                                                    entry.next_chapter_url
+                                                                }
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                            >
+                                                                Read next
+                                                                {entry.next_chapter &&
+                                                                    ` (${entry.next_chapter})`}
+                                                                <ExternalLink className="size-3" />
+                                                            </a>
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            disabled
+                                                        >
+                                                            Read next
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         name="progress_action"
                                                         value="latest"

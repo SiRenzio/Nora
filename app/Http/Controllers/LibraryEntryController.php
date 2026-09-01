@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ImportLibraryEntryRequest;
 use App\Http\Requests\StoreLibraryEntryRequest;
 use App\Http\Requests\UpdateLibraryEntryRequest;
 use App\Http\Requests\UpdateReadingProgressRequest;
 use App\Models\LibraryEntry;
 use App\Models\Title;
+use App\Services\Sources\SourceImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -17,6 +19,58 @@ use Inertia\Response;
 
 class LibraryEntryController extends Controller
 {
+    public function import(ImportLibraryEntryRequest $request, SourceImporter $importer): RedirectResponse
+    {
+        $data = $request->validated();
+        $url = rtrim($data['source_url'], '/');
+
+        $existingEntry = $request->user()->libraryEntries()->with('title')->where('source_url', $url)->first();
+        $imported = $importer->import($url);
+        DB::transaction(function () use ($request, $data, $imported, $existingEntry) {
+            if ($existingEntry) {
+                $existingEntry->title->update([
+                    'title' => $imported->title,
+                    'content_type' => $imported->contentType,
+                    'cover_url' => $imported->coverUrl,
+                    'description' => $imported->description,
+                ]);
+                $existingEntry->update([
+                    'source_website' => $imported->sourceWebsite,
+                    'latest_chapter' => $imported->latestChapter,
+                    'chapter_urls' => $imported->chapterUrls,
+                    'last_checked_at' => now(),
+                    'monitoring_enabled' => $data['monitoring_enabled'],
+                    'archived_at' => null,
+                ]);
+
+                return;
+            }
+
+            $title = Title::create([
+                'title' => $imported->title,
+                'content_type' => $imported->contentType,
+                'cover_url' => $imported->coverUrl,
+                'description' => $imported->description,
+                'created_by_user_id' => $request->user()->id,
+            ]);
+            $request->user()->libraryEntries()->create([
+                'title_id' => $title->id,
+                'source_url' => $imported->sourceUrl,
+                'source_website' => $imported->sourceWebsite,
+                'status' => $data['status'],
+                'latest_chapter' => $imported->latestChapter,
+                'chapter_urls' => $imported->chapterUrls,
+                'last_completed_chapter' => $data['last_completed_chapter'] ?? null,
+                'last_checked_at' => now(),
+                'monitoring_enabled' => $data['monitoring_enabled'],
+            ]);
+        });
+
+        $message = $existingEntry ? 'Title metadata and chapters refreshed.' : 'Title imported to your library.';
+
+        return to_route('library.index')->with('success', $message);
+    }
+
     /**
      * Display a listing of the resource.
      */
