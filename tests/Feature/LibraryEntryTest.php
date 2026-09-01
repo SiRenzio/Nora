@@ -76,6 +76,52 @@ class LibraryEntryTest extends TestCase
         $this->assertNotNull($entry->fresh()->archived_at);
     }
 
+    public function test_user_can_update_progress_with_an_arbitrary_chapter_label(): void
+    {
+        $user = User::factory()->create();
+        $entry = $this->createEntry($user, 'Side Stories');
+
+        $this->actingAs($user)->patch(route('library.progress.update', $entry), [
+            'progress_action' => 'manual',
+            'chapter' => 'Volume 2 Side Story 3',
+        ])->assertRedirect(route('library.index'));
+
+        $entry->refresh();
+        $this->assertSame('Volume 2 Side Story 3', $entry->last_completed_chapter);
+        $this->assertNotNull($entry->last_read_at);
+    }
+
+    public function test_user_can_mark_the_next_or_latest_numeric_chapter_as_read(): void
+    {
+        $user = User::factory()->create();
+        $entry = $this->createEntry($user, 'Chapter Story');
+        $entry->update([
+            'latest_chapter' => 'Chapter 15',
+            'last_completed_chapter' => 'Chapter 12',
+        ]);
+
+        $this->actingAs($user)->patch(route('library.progress.update', $entry), [
+            'progress_action' => 'next',
+        ])->assertRedirect(route('library.index'));
+        $this->assertSame('Chapter 13', $entry->fresh()->last_completed_chapter);
+
+        $this->actingAs($user)->patch(route('library.progress.update', $entry), [
+            'progress_action' => 'latest',
+        ])->assertRedirect(route('library.index'));
+        $this->assertSame('Chapter 15', $entry->fresh()->last_completed_chapter);
+        $this->assertSame(0, $entry->fresh()->unread_count);
+    }
+
+    public function test_user_cannot_update_another_users_progress(): void
+    {
+        $entry = $this->createEntry(User::factory()->create(), 'Private Progress');
+
+        $this->actingAs(User::factory()->create())->patch(
+            route('library.progress.update', $entry),
+            ['progress_action' => 'manual', 'chapter' => 'Chapter 9'],
+        )->assertForbidden();
+    }
+
     private function createEntry(User $user, string $name): LibraryEntry
     {
         $title = Title::create([

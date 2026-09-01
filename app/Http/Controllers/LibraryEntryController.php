@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreLibraryEntryRequest;
 use App\Http\Requests\UpdateLibraryEntryRequest;
+use App\Http\Requests\UpdateReadingProgressRequest;
 use App\Models\LibraryEntry;
 use App\Models\Title;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -89,6 +91,32 @@ class LibraryEntryController extends Controller
         });
 
         return to_route('library.index')->with('success', 'Library entry updated.');
+    }
+
+    public function updateProgress(
+        UpdateReadingProgressRequest $request,
+        LibraryEntry $libraryEntry,
+    ): RedirectResponse {
+        $action = $request->validated('progress_action');
+        $chapter = match ($action) {
+            'manual' => $request->validated('chapter'),
+            'next' => $libraryEntry->next_chapter,
+            'latest' => $libraryEntry->latest_chapter,
+        };
+
+        if ($chapter === null) {
+            throw ValidationException::withMessages([
+                'chapter' => 'This chapter label cannot be advanced automatically. Enter the chapter manually.',
+            ]);
+        }
+
+        $libraryEntry->update([
+            'last_completed_chapter' => $chapter,
+            'last_read_at' => now(),
+            'status' => $libraryEntry->status === 'plan_to_read' ? 'reading' : $libraryEntry->status,
+        ]);
+
+        return to_route('library.index')->with('success', "Progress updated to {$chapter}.");
     }
 
     /**

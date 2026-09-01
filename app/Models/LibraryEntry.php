@@ -28,6 +28,8 @@ class LibraryEntry extends Model
         'archived_at',
     ];
 
+    protected $appends = ['unread_count', 'next_chapter'];
+
     protected function casts(): array
     {
         return [
@@ -46,5 +48,35 @@ class LibraryEntry extends Model
     public function title(): BelongsTo
     {
         return $this->belongsTo(Title::class);
+    }
+
+    public function getUnreadCountAttribute(): ?int
+    {
+        $latest = $this->chapterNumber($this->latest_chapter);
+        $completed = $this->chapterNumber($this->last_completed_chapter) ?? 0;
+
+        return $latest === null ? null : max(0, (int) ceil($latest - $completed));
+    }
+
+    public function getNextChapterAttribute(): ?string
+    {
+        if ($this->last_completed_chapter === null) {
+            return 'Chapter 1';
+        }
+
+        if (! preg_match('/^(.*?)(\d+)$/', trim($this->last_completed_chapter), $matches)) {
+            return null;
+        }
+
+        return $matches[1].((int) $matches[2] + 1);
+    }
+
+    private function chapterNumber(?string $chapter): ?float
+    {
+        if ($chapter === null || ! preg_match('/(\d+(?:\.\d+)?)\s*$/', trim($chapter), $matches)) {
+            return null;
+        }
+
+        return (float) $matches[1];
     }
 }

@@ -9,9 +9,9 @@ export default function AuthSimpleLayout({
     description,
 }: AuthLayoutProps) {
     return (
-        <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-stone-950 p-6 text-stone-100 md:p-10">
+        <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-stone-950 p-4 text-stone-100 md:p-6">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.22),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(244,114,182,0.14),transparent_36%)]" />
-            <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-stone-900/80 p-7 shadow-2xl shadow-black/40 backdrop-blur md:p-10">
+            <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-stone-900/80 p-5 shadow-2xl shadow-black/40 backdrop-blur md:p-7">
                 <div className="flex flex-col gap-8">
                     <div className="flex flex-col items-center gap-4">
                         <Link

@@ -1,11 +1,20 @@
 import { Form, Head, Link } from "@inertiajs/react";
-import { Archive, BookOpen, ExternalLink, Plus, Search, X } from "lucide-react";
+import {
+    Archive,
+    BookOpen,
+    Check,
+    ExternalLink,
+    Plus,
+    Search,
+    X,
+} from "lucide-react";
 import { useState } from "react";
 import InputError from "@/components/input-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { destroy, index, store, update } from "@/routes/library";
+import { update as updateProgress } from "@/routes/library/progress";
 
 type Entry = {
     id: number;
@@ -18,6 +27,8 @@ type Entry = {
     monitoring_enabled: boolean;
     notes: string | null;
     rating: number | null;
+    unread_count: number | null;
+    next_chapter: string | null;
     title: {
         title: string;
         alternative_title: string | null;
@@ -380,6 +391,13 @@ export default function LibraryIndex({ entries, filters }: Props) {
                                                     )?.[1]
                                                 }
                                             </span>
+                                            {entry.unread_count !== null &&
+                                                entry.unread_count > 0 && (
+                                                    <span className="rounded-full bg-amber-500/15 px-2 py-1 text-amber-700 dark:text-amber-300">
+                                                        {entry.unread_count}{" "}
+                                                        unread
+                                                    </span>
+                                                )}
                                         </div>
                                         <h2 className="line-clamp-2 font-semibold">
                                             {entry.title.title}
@@ -416,60 +434,130 @@ export default function LibraryIndex({ entries, filters }: Props) {
                                                 rel="noreferrer"
                                                 className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-violet-600 hover:underline"
                                             >
-                                                Open source{" "}
+                                                Continue reading{" "}
                                                 <ExternalLink className="size-3" />
                                             </a>
                                         )}
                                     </div>
                                 </div>
                                 <div className="border-t px-4 py-3">
-                                    <details>
-                                        <summary className="cursor-pointer text-sm font-medium">
-                                            Edit details
-                                        </summary>
-                                        <Form
-                                            {...update.form(entry.id)}
-                                            className="mt-4 space-y-4"
-                                        >
-                                            {({ processing, errors }) => (
-                                                <>
-                                                    <EntryFields
-                                                        entry={entry}
+                                    <Form
+                                        {...updateProgress.form(entry.id)}
+                                        className="space-y-2"
+                                    >
+                                        {({ processing, errors }) => (
+                                            <>
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        name="chapter"
+                                                        aria-label="Completed chapter"
+                                                        placeholder="Chapter label"
+                                                        className="h-8 min-w-0 text-xs"
                                                     />
-                                                    {Object.values(
-                                                        errors,
-                                                    )[0] && (
-                                                        <InputError
-                                                            message={
-                                                                Object.values(
-                                                                    errors,
-                                                                )[0]
-                                                            }
-                                                        />
-                                                    )}
                                                     <Button
+                                                        name="progress_action"
+                                                        value="manual"
+                                                        variant="secondary"
                                                         size="sm"
                                                         disabled={processing}
                                                     >
-                                                        Save changes
+                                                        <Check className="size-3.5" />
+                                                        Mark read
                                                     </Button>
-                                                </>
-                                            )}
-                                        </Form>
-                                    </details>
-                                    <Form
-                                        {...destroy.form(entry.id)}
-                                        className="mt-3"
-                                    >
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-muted-foreground px-0 hover:text-destructive"
-                                        >
-                                            <Archive className="size-4" />{" "}
-                                            Archive
-                                        </Button>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <Button
+                                                        name="progress_action"
+                                                        value="next"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={
+                                                            processing ||
+                                                            !entry.next_chapter ||
+                                                            entry.unread_count ===
+                                                                0
+                                                        }
+                                                    >
+                                                        Read next
+                                                        {entry.next_chapter &&
+                                                            ` (${entry.next_chapter})`}
+                                                    </Button>
+                                                    <Button
+                                                        name="progress_action"
+                                                        value="latest"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={
+                                                            processing ||
+                                                            !entry.latest_chapter ||
+                                                            entry.unread_count ===
+                                                                0
+                                                        }
+                                                    >
+                                                        Mark latest read
+                                                    </Button>
+                                                </div>
+                                                {errors.chapter && (
+                                                    <InputError
+                                                        message={errors.chapter}
+                                                    />
+                                                )}
+                                            </>
+                                        )}
                                     </Form>
+                                </div>
+                                <div className="border-t px-4 py-3">
+                                    <div className="relative">
+                                        <details>
+                                            <summary className="w-fit cursor-pointer py-2 text-sm font-medium">
+                                                Edit details
+                                            </summary>
+                                            <Form
+                                                {...update.form(entry.id)}
+                                                className="mt-4 space-y-4"
+                                            >
+                                                {({ processing, errors }) => (
+                                                    <>
+                                                        <EntryFields
+                                                            entry={entry}
+                                                        />
+                                                        {Object.values(
+                                                            errors,
+                                                        )[0] && (
+                                                            <InputError
+                                                                message={
+                                                                    Object.values(
+                                                                        errors,
+                                                                    )[0]
+                                                                }
+                                                            />
+                                                        )}
+                                                        <Button
+                                                            size="sm"
+                                                            disabled={
+                                                                processing
+                                                            }
+                                                        >
+                                                            Save changes
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </Form>
+                                        </details>
+                                        <Form
+                                            {...destroy.form(entry.id)}
+                                            className="absolute top-0 right-0"
+                                        >
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-muted-foreground hover:text-destructive"
+                                            >
+                                                <Archive className="size-4" />{" "}
+                                                Archive
+                                            </Button>
+                                        </Form>
+                                    </div>
                                 </div>
                             </article>
                         ))}
